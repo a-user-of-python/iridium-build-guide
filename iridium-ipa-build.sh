@@ -87,7 +87,7 @@ workflow on GitHub's Apple Silicon runners, waits for it, and downloads
 the finished IPA. Same source, same checks — just built in the cloud.
 EOF
 
-command -v gh >/dev/null 2>&1 || die "The GitHub CLI is required: brew install gh"
+command -v gh >/dev/null 2>&1 || die "The GitHub CLI is required. Download the macOS .pkg (no Homebrew needed): https://github.com/cli/cli/releases/latest/download/gh_macOS_universal.pkg then run: gh auth login"
 gh auth status >/dev/null 2>&1 || die "gh is not logged in. Run: gh auth login"
 
 # Actions must be enabled on the fork (they are off by default on forks).
