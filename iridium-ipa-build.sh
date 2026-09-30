@@ -27,15 +27,20 @@
 
 set -euo pipefail
 
+section() { printf '\n===== %s =====\n' "$1"; }
+die() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
+
+[ "$(uname -s)" = "Darwin" ] || die "This script needs macOS."
+
 REPO="a-user-of-python/iridium"
 BRANCH="${IRIDIUM_BRANCH:-dx10-shim-frontends}"
 BUILD_DIR="$HOME/Desktop/iridium"
 
-section() { printf '\n===== %s =====\n' "$1"; }
-die() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
-
 # ---------------------------------------------------------------- clone ---
 section "Getting the source ($REPO @ $BRANCH)"
+if [ -e "$BUILD_DIR" ] && [ ! -d "$BUILD_DIR/.git" ]; then
+  die "$BUILD_DIR exists but is not a git checkout. Move or rename it, then run again."
+fi
 if [ -d "$BUILD_DIR/.git" ]; then
   echo "Using existing checkout at $BUILD_DIR"
   git -C "$BUILD_DIR" fetch origin
@@ -44,10 +49,12 @@ else
   git clone "https://github.com/$REPO.git" "$BUILD_DIR"
 fi
 git -C "$BUILD_DIR" checkout "$BRANCH"
-git -C "$BUILD_DIR" pull --ff-only origin "$BRANCH" || true
+git -C "$BUILD_DIR" pull --ff-only origin "$BRANCH"
 echo "Updating submodules (this can take a while the first time)..."
 git -C "$BUILD_DIR" submodule update --init --recursive
 SHA=$(git -C "$BUILD_DIR" rev-parse HEAD)
+REMOTE_SHA=$(git -C "$BUILD_DIR" rev-parse "origin/$BRANCH")
+[ "$SHA" = "$REMOTE_SHA" ] || die "Local checkout ($SHA) does not match origin/$BRANCH ($REMOTE_SHA). Delete $BUILD_DIR and run again for a fresh clone."
 echo "Building commit: $SHA"
 
 ARCH="$(uname -m)"
@@ -97,7 +104,7 @@ echo "Workflow dispatched (id: $DISPATCH_ID). Finding the run..."
 RUN_ID=""
 for _ in $(seq 1 30); do
   RUN_ID=$(gh api "repos/$REPO/actions/workflows/build-unsigned-ipa.yml/runs?event=workflow_dispatch&per_page=20" \
-    --jq ".workflow_runs[] | select(.display_title | contains(\"$DISPATCH_ID\")) | .id" 2>/dev/null | head -1)
+    --jq ".workflow_runs[] | select(.display_title | contains(\"$DISPATCH_ID\")) | .id" 2>/dev/null | head -1) || true
   [ -n "$RUN_ID" ] && break
   sleep 10
 done
