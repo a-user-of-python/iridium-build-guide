@@ -39,3 +39,5 @@ The script:
 The IPA is **unsigned**. Sign it with Sideloadly, AltStore, or your
 preferred sideloading tool before installing on a device. JIT, game
 playback, audio, and input need separate device tests.
+
+> Built with Muse — AI-assisted development.
